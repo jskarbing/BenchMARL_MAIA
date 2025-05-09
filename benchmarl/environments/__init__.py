@@ -7,7 +7,7 @@
 from .common import _get_task_config_class, Task, TaskClass
 
 from .magent.common import MAgentClass, MAgentTask
-from .meltingpot.common import MeltingPotClass, MeltingPotTask
+from .meltingpot_maia.common import MeltingPotClass, MeltingPotTask
 from .pettingzoo.common import PettingZooClass, PettingZooTask
 from .smacv2.common import Smacv2Class, Smacv2Task
 from .vmas.common import VmasClass, VmasTask

@@ -1,8 +1,12 @@
-#  Copyright (c) Meta Platforms, Inc. and affiliates.
+# TODO: Update copyright and license bit to be correctly formatted for crediting the original authors
+# Original file found with
+# import benchmarl.environments.meltingpot.common
+
+# Slightly modified version of benchmarl/environments/meltingpot/common.py with 
+#       Copyright (c) Meta Platforms, Inc. and affiliates, and 
+#       License found in the LICENSE file in the root directory of this source tree.
 #
-#  This source code is licensed under the license found in the
-#  LICENSE file in the root directory of this source tree.
-#
+
 import copy
 from typing import Callable, Dict, List, Optional
 
@@ -30,7 +34,7 @@ class MeltingPotClass(TaskClass):
         seed: Optional[int],
         device: DEVICE_TYPING,
     ) -> Callable[[], EnvBase]:
-        from torchrl.envs.libs.meltingpot import MeltingpotEnv
+        from benchmarl.environments.meltingpot_maia.torchrl_meltingpot_wrapper import MeltingpotEnv
 
         config = copy.deepcopy(self.config)
 
@@ -131,10 +135,12 @@ class MeltingPotClass(TaskClass):
     def render_callback(experiment, env: EnvBase, data: TensorDictBase):
         return data.get("RGB")
 
-
 class MeltingPotTask(Task):
-    """Enum for meltingpot tasks."""
+    """Enum for meltingpot tasks, including the MAIA custom tasks."""
+    #MAIA custom meltingpot tasks:
+    HARVEST__MAIA = None
 
+    #Original meltingpot tasks:
     PREDATOR_PREY__ALLEY_HUNT = None
     CLEAN_UP = None
     COLLABORATIVE_COOKING__CIRCUIT = None

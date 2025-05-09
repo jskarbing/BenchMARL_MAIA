@@ -1,0 +1,2 @@
+max_steps: 14
+group_map: {agent_0: [player_0], agent_1: [player_1]}

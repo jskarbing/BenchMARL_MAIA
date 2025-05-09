@@ -714,7 +714,10 @@ class Experiment(CallbackNotifier):
             # Loop over groups
             training_start = time.time()
             for group in self.train_group_map.keys():
-                group_batch = batch.exclude(*self._get_excluded_keys(group))
+                #TODO: Check if there's a better way to make sure the batch is on the correct device below. 
+                # In particular: Why did bug fix #180 change storing device to sampling device when setting up sync collector?
+                # This led to the batch being on the wrong device below, when sampling device and train device are different.
+                group_batch = batch.exclude(*self._get_excluded_keys(group)).to(self.config.train_device)
                 group_batch = self.algorithm.process_batch(group, group_batch)
                 if not self.algorithm.has_rnn:
                     group_batch = group_batch.reshape(-1)

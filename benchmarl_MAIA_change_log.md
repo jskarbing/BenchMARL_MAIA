@@ -10,3 +10,6 @@
         for human play for our custom envs (and as a way to test that it works as expected)
 - Added a harvest__maia.yaml file for our custom env to benchmarl/conf/task/meltingpot
 - Added cnn architecture cnn_maia (as a yaml file) to BenchMARL/benchmarl/conf/model/layers.
+
+### Other changes
+- Replaced project_name with wandb_kwargs in experiment configs, and made the corresponding changes in experiment.py and logger.py, to allow for specifying other wandb kwargs than only the project name.

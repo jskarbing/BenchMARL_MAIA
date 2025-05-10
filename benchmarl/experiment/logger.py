@@ -38,7 +38,7 @@ class Logger:
         model_name: str,
         group_map: Dict[str, List[str]],
         seed: int,
-        project_name: str,
+        wandb_kwargs: Dict[str, str],
     ):
         self.experiment_config = experiment_config
         self.algorithm_name = algorithm_name
@@ -47,6 +47,11 @@ class Logger:
         self.model_name = model_name
         self.group_map = group_map
         self.seed = seed
+
+        if "group" not in wandb_kwargs:
+            wandb_kwargs["group"] = task_name
+        if "name" not in wandb_kwargs:
+            wandb_kwargs["name"] = experiment_name
 
         if experiment_config.create_json:
             self.json_writer = JsonWriter(
@@ -67,11 +72,7 @@ class Logger:
                     logger_type=logger_name,
                     logger_name=folder_name,
                     experiment_name=experiment_name,
-                    wandb_kwargs={
-                        "group": task_name,
-                        "project": project_name,
-                        "id": experiment_name,
-                    },
+                    wandb_kwargs=wandb_kwargs,
                 )
             )
 

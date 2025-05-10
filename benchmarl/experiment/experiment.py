@@ -110,7 +110,7 @@ class ExperimentConfig:
     evaluation_static: bool = MISSING
 
     loggers: List[str] = MISSING
-    project_name: str = MISSING
+    wandb_kwargs: Dict[str, str] = MISSING
     create_json: bool = MISSING
 
     save_folder: Optional[str] = MISSING
@@ -611,9 +611,9 @@ class Experiment(CallbackNotifier):
 
     def _setup_logger(self):
         self.logger = Logger(
-            project_name=self.config.project_name,
             experiment_name=self.name,
             folder_name=str(self.folder_name),
+            wandb_kwargs=self.config.wandb_kwargs,
             experiment_config=self.config,
             algorithm_name=self.algorithm_name,
             model_name=self.model_name,

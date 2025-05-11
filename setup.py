@@ -40,12 +40,12 @@ extra_files = package_files(
 )
 
 setup(
-    name="benchmarl",
+    name="benchmarl_maia",
     version=get_version(),
-    description="BenchMARL",
-    url="https://github.com/facebookresearch/BenchMARL",
-    author="Matteo Bettini",
-    author_email="mb2389@cl.cam.ac.uk",
+    description="BenchMARL MAIA",
+    url="https://github.com/jskarbing/BenchMARL_MAIA/",
+    author="Original: Matteo Bettini, Modified: Julia Karbing",
+    # author_email="mb2389@cl.cam.ac.uk",
     install_requires=["torchrl~=0.8.0", "tqdm", "hydra-core", "torchvision", "av<14"],
     extras_require={
         "vmas": ["vmas>=1.3.4"],

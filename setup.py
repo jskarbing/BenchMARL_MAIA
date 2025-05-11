@@ -44,8 +44,8 @@ setup(
     version=get_version(),
     description="BenchMARL MAIA",
     url="https://github.com/jskarbing/BenchMARL_MAIA/",
-    author="Original: Matteo Bettini, Modified: Julia Karbing",
-    # author_email="mb2389@cl.cam.ac.uk",
+    author="Original BenchMARL: Matteo Bettini, MAIA modifications: Julia Karbing",
+    author_email="Original BenchMARL: mb2389@cl.cam.ac.uk, MAIA modifications: julia.karbing@robots.ox.ac.uk",
     install_requires=["torchrl~=0.8.0", "tqdm", "hydra-core", "torchvision", "av<14"],
     extras_require={
         "vmas": ["vmas>=1.3.4"],

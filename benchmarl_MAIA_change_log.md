@@ -13,3 +13,4 @@
 
 ### Other changes
 - Replaced project_name with wandb_kwargs in experiment configs, and made the corresponding changes in experiment.py and logger.py, to allow for specifying other wandb kwargs than only the project name.
+- Added option to save and then load only policy (instead of checkpointing the whole trainer)

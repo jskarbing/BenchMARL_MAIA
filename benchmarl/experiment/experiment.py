@@ -114,11 +114,17 @@ class ExperimentConfig:
     create_json: bool = MISSING
 
     save_folder: Optional[str] = MISSING
-    restore_file: Optional[str] = MISSING
     restore_map_location: Optional[Any] = MISSING
-    checkpoint_interval: int = MISSING
-    checkpoint_at_end: bool = MISSING
-    keep_checkpoints_num: Optional[int] = MISSING
+
+    experiment_restore_file: Optional[str] = MISSING
+    experiment_checkpoint_interval: int = MISSING
+    experiment_checkpoint_at_end: bool = MISSING
+    experiment_keep_checkpoints_num: Optional[int] = MISSING
+
+    policy_restore_file: Optional[str] = MISSING
+    policy_checkpoint_interval: int = MISSING
+    policy_checkpoint_at_end: bool = MISSING
+    policy_keep_checkpoints_num: Optional[int] = MISSING
 
     def train_batch_size(self, on_policy: bool) -> int:
         """
@@ -294,16 +300,27 @@ class ExperimentConfig:
                 f"is not a multiple of the collected_frames_per_batch ({self.collected_frames_per_batch(on_policy)})"
             )
         if (
-            self.checkpoint_interval != 0
-            and self.checkpoint_interval % self.collected_frames_per_batch(on_policy)
+            self.experiment_checkpoint_interval != 0
+            and self.experiment_checkpoint_interval % self.collected_frames_per_batch(on_policy)
             != 0
         ):
             raise ValueError(
-                f"checkpoint_interval ({self.checkpoint_interval}) "
+                f"experiment_checkpoint_interval ({self.experiment_checkpoint_interval}) "
                 f"is not a multiple of the collected_frames_per_batch ({self.collected_frames_per_batch(on_policy)})"
             )
-        if self.keep_checkpoints_num is not None and self.keep_checkpoints_num <= 0:
-            raise ValueError("keep_checkpoints_num must be greater than zero or null")
+        if (
+            self.policy_checkpoint_interval != 0
+            and self.policy_checkpoint_interval % self.collected_frames_per_batch(on_policy)
+            != 0
+        ):
+            raise ValueError(
+                f"policy_checkpoint_interval ({self.policy_checkpoint_interval}) "
+                f"is not a multiple of the collected_frames_per_batch ({self.collected_frames_per_batch(on_policy)})"
+            )
+        if self.experiment_keep_checkpoints_num is not None and self.experiment_keep_checkpoints_num <= 0:
+            raise ValueError("experiment_keep_checkpoints_num must be greater than zero or null")
+        if self.policy_keep_checkpoints_num is not None and self.policy_keep_checkpoints_num <= 0:
+            raise ValueError("policy_keep_checkpoints_num must be greater than zero or null")
         if self.max_n_frames is None and self.max_n_iters is None:
             raise ValueError("max_n_frames and max_n_iters are both not set")
         if self.max_n_frames is not None and self.max_n_iters is not None:
@@ -372,7 +389,7 @@ class Experiment(CallbackNotifier):
         self.n_iters_performed = 0
         self.mean_return = 0
 
-        if self.config.restore_file is not None:
+        if self.config.experiment_restore_file is not None:
             self._load_experiment()
 
     @property
@@ -533,6 +550,10 @@ class Experiment(CallbackNotifier):
     def _setup_collector(self):
         self.policy = self.algorithm.get_policy_for_collection()
 
+        # Load policy from checkpoint if specified. This updates self.policy.
+        if self.config.policy_restore_file is not None:
+            self._load_policy()
+
         self.group_policies = {}
         for group in self.group_map.keys():
             group_policy = self.policy.select_subsequence(out_keys=[(group, "action")])
@@ -568,16 +589,17 @@ class Experiment(CallbackNotifier):
         )
         self.environment_name = self.task.env_name().lower()
         self.task_name = self.task.name.lower()
-        self._checkpointed_files = deque([])
+        self._experiment_checkpointed_files = deque([])
+        self._policy_checkpointed_files = deque([])
 
         if self.config.save_folder is not None:
             # If the user specified a folder for the experiment we use that
             save_folder = Path(self.config.save_folder)
         else:
-            # Otherwise, if the user is restoring from a folder, we will save in the folder they are restoring from
-            if self.config.restore_file is not None:
+            # Otherwise, if the user is restoring the experiment from a folder, we will save in the folder they are restoring from
+            if self.config.experiment_restore_file is not None:
                 save_folder = Path(
-                    self.config.restore_file
+                    self.config.experiment_restore_file
                 ).parent.parent.parent.resolve()
             # Otherwise, the user is not restoring and did not specify a save_folder so we save in the hydra directory
             # of the experiment or in the directory where the experiment was run (if hydra is not used)
@@ -587,7 +609,7 @@ class Experiment(CallbackNotifier):
                 else:
                     save_folder = Path(os.getcwd())
 
-        if self.config.restore_file is None:
+        if self.config.experiment_restore_file is None:
             self.name = generate_exp_name(
                 f"{self.algorithm_name}_{self.task_name}_{self.model_name}", ""
             )
@@ -595,7 +617,7 @@ class Experiment(CallbackNotifier):
 
         else:
             # If restoring, we use the name of the previous experiment
-            self.name = Path(self.config.restore_file).parent.parent.resolve().name
+            self.name = Path(self.config.experiment_restore_file).parent.parent.resolve().name
             self.folder_name = save_folder / self.name
 
         self.folder_name.mkdir(parents=False, exist_ok=True)
@@ -786,14 +808,21 @@ class Experiment(CallbackNotifier):
             self.n_iters_performed += 1
             self.logger.commit()
             if (
-                self.config.checkpoint_interval > 0
-                and self.total_frames % self.config.checkpoint_interval == 0
+                self.config.experiment_checkpoint_interval > 0
+                and self.total_frames % self.config.experiment_checkpoint_interval == 0
             ):
                 self._save_experiment()
+            if (
+                self.config.policy_checkpoint_interval > 0
+                and self.total_frames % self.config.policy_checkpoint_interval == 0
+            ):
+                self._save_policy()
             pbar.update()
 
-        if self.config.checkpoint_at_end:
+        if self.config.experiment_checkpoint_at_end:
             self._save_experiment()
+        if self.config.policy_checkpoint_at_end:
+            self._save_policy()
         self.close()
 
     def close(self):
@@ -978,23 +1007,45 @@ class Experiment(CallbackNotifier):
 
     def _save_experiment(self) -> None:
         """Checkpoint trainer"""
-        if self.config.keep_checkpoints_num is not None:
-            while len(self._checkpointed_files) >= self.config.keep_checkpoints_num:
-                file_to_delete = self._checkpointed_files.popleft()
+        if self.config.experiment_keep_checkpoints_num is not None:
+            while len(self._experiment_checkpointed_files) >= self.config.experiment_keep_checkpoints_num:
+                file_to_delete = self._experiment_checkpointed_files.popleft()
                 file_to_delete.unlink(missing_ok=False)
 
-        checkpoint_folder = self.folder_name / "checkpoints"
-        checkpoint_folder.mkdir(parents=False, exist_ok=True)
-        checkpoint_file = checkpoint_folder / f"checkpoint_{self.total_frames}.pt"
-        torch.save(self.state_dict(), checkpoint_file)
-        self._checkpointed_files.append(checkpoint_file)
+        experiment_checkpoint_folder = self.folder_name / "experiment_checkpoints"
+        experiment_checkpoint_folder.mkdir(parents=False, exist_ok=True)
+        experiment_checkpoint_file = experiment_checkpoint_folder / f"experiment_checkpoint_{self.total_frames}.pt"
+        torch.save(self.state_dict(), experiment_checkpoint_file)
+        self._experiment_checkpointed_files.append(experiment_checkpoint_file)
 
     def _load_experiment(self) -> Experiment:
         """Load trainer from checkpoint"""
         loaded_dict: OrderedDict = torch.load(
-            self.config.restore_file, map_location=self.config.restore_map_location
+            self.config.experiment_restore_file, map_location=self.config.restore_map_location
         )
         self.load_state_dict(loaded_dict)
+        return self
+
+    def _save_policy(self) -> None:
+        """Checkpoint policy"""
+        if self.config.policy_keep_checkpoints_num is not None:
+            while len(self._policy_checkpointed_files) >= self.config.policy_keep_checkpoints_num:
+                file_to_delete = self._policy_checkpointed_files.popleft()
+                file_to_delete.unlink(missing_ok=False)
+
+        policy_checkpoint_folder = self.folder_name / "policy_checkpoints"
+        policy_checkpoint_folder.mkdir(parents=False, exist_ok=True)
+        policy_checkpoint_file = policy_checkpoint_folder / f"policy_checkpoint_{self.total_frames}.pt"
+        
+        torch.save(self.policy.state_dict(), policy_checkpoint_file)
+        self._policy_checkpointed_files.append(policy_checkpoint_file)
+
+    def _load_policy(self) -> None:
+        """Load policy from checkpoint"""
+        loaded_dict: OrderedDict = torch.load(
+            self.config.policy_restore_file, map_location=self.config.restore_map_location
+        )
+        self.policy.load_state_dict(loaded_dict)
         return self
 
     @staticmethod
@@ -1003,7 +1054,7 @@ class Experiment(CallbackNotifier):
         Restores the experiment from the checkpoint file.
 
         This method expects the same folder structure created when an experiment is run.
-        The checkpoint file (``restore_file``) is in the checkpoints directory and a config.pkl file is
+        The checkpoint file (``restore_file``) is in the experiment_checkpoints directory and a config.pkl file is
         present a level above at restore_file/../../config.pkl
 
         Args:
@@ -1027,7 +1078,7 @@ class Experiment(CallbackNotifier):
             critic_model_config = pickle.load(f)
             callbacks = pickle.load(f)
         task.config = task_config
-        experiment_config.restore_file = restore_file
+        experiment_config.experiment_restore_file = restore_file
         experiment = Experiment(
             task=task,
             algorithm_config=algorithm_config,

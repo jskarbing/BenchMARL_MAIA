@@ -653,6 +653,7 @@ class Experiment(CallbackNotifier):
             task_config=self.task.config,
             continuous_actions=self.continuous_actions,
             on_policy=self.on_policy,
+            callbacks= [callback.__class__.__name__ for callback in self.callbacks],
         )
 
     def run(self):

@@ -708,7 +708,7 @@ class Experiment(CallbackNotifier):
                         policy=self.policy,
                         break_when_any_done=False,
                         auto_reset=False,
-                        tensordict=reset_batch,
+                        tensordict=reset_batch.to(self.policy.device),
                     )
                     reset_batch = step_mdp(
                         batch[..., -1],

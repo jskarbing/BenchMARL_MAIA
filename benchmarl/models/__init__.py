@@ -37,6 +37,7 @@ model_config_registry = {
     "mlp": MlpConfig,
     "gnn": GnnConfig,
     "cnn": CnnConfig,
+    "cnn_maia": CnnConfig,
     "deepsets": DeepsetsConfig,
     "gru": GruConfig,
     "lstm": LstmConfig,

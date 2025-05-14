@@ -50,7 +50,7 @@ WA   AA   AW
 W  W QP W  W
 WA  WWWW  AW
 WAA AAAA AAW
-WWWWWWWWWWWW
+WWWWWAAWWWWW
 """
 
 # `prefab` determines which prefab game object to use for each `char` in the

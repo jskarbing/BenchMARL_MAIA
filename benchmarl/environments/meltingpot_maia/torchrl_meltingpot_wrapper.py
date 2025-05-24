@@ -21,6 +21,9 @@ from torchrl.envs.common import _EnvWrapper
 from torchrl.envs.libs.dm_control import _dmcontrol_to_torchrl_spec_transform
 from torchrl.envs.utils import _classproperty, check_marl_grouping, MarlGroupMapType
 
+from dm_env import specs
+import numpy as np
+
 _has_meltingpot = importlib.util.find_spec("meltingpot") is not None
 
 PLAYER_STR_FORMAT = "player_{index}"
@@ -89,6 +92,14 @@ def _global_state_spec_from_obs_spec(
 def _remove_world_prefix(world_entries: Dict) -> Dict:
     return {key[len(_WORLD_PREFIX) :]: value for key, value in world_entries.items()}
 
+
+def _add_timestep_to_obs(
+    observation_spec: Sequence[Mapping[str, "dm_env.specs.Array"]],  # noqa
+) -> Sequence[Mapping[str, "dm_env.specs.Array"]]:  # noqa
+    return [
+        {**agent_obs, "TIMESTEP": specs.Array(shape=(), dtype=np.float64, name="TIMESTEP")}
+        for agent_obs in observation_spec
+    ]
 
 class MeltingpotWrapper(_EnvWrapper):
     """Meltingpot environment wrapper.
@@ -237,6 +248,7 @@ class MeltingpotWrapper(_EnvWrapper):
         self, env: "meltingpot.utils.substrates.substrate.Substrate"  # noqa
     ) -> None:
         mp_obs_spec = self._env.observation_spec()  # List of dict of arrays
+        mp_obs_spec = _add_timestep_to_obs(mp_obs_spec)
         mp_obs_spec_no_world = _remove_world_observations_from_obs_spec(
             mp_obs_spec
         )  # List of dict of arrays
@@ -390,6 +402,10 @@ class MeltingpotWrapper(_EnvWrapper):
             agent_tds = []
             for index_in_group, agent_name in enumerate(agent_names):
                 global_index = self.agent_names_to_indices_map[agent_name]
+
+                #Add timestep to obs
+                obs[global_index]['TIMESTEP'] = torch.tensor([self.num_cycles], dtype = torch.int64, device=self.device)
+
                 agent_obs = self.observation_spec[group, "observation"][
                     index_in_group
                 ].encode(_filter_from_dict(obs[global_index], world=False))
@@ -456,6 +472,10 @@ class MeltingpotWrapper(_EnvWrapper):
             agent_tds = []
             for index_in_group, agent_name in enumerate(agent_names):
                 global_index = self.agent_names_to_indices_map[agent_name]
+
+                #Add timestep to obs
+                obs[global_index]['TIMESTEP'] = torch.tensor([self.num_cycles], dtype = torch.int64, device=self.device)
+
                 agent_obs = self.observation_spec[group, "observation"][
                     index_in_group
                 ].encode(_filter_from_dict(obs[global_index], world=False))

@@ -51,6 +51,9 @@ W  W QP W  W
 WA  WWWW  AW
 WAA AAAA AAW
 WWWWWAAWWWWW
+WWWWWAAWWWWW
+WWWWWAAWWWWW
+WWWWWWWWWWWW
 """
 
 # `prefab` determines which prefab game object to use for each `char` in the
@@ -481,11 +484,11 @@ def create_avatar_object(player_idx: int,
           },
       ]
   }
-  if _ENABLE_DEBUG_OBSERVATIONS:
-    avatar_object["components"].append({
-        "component": "LocationObserver",
-        "kwargs": {"objectIsAvatar": True, "alsoReportOrientation": True},
-    })
+#   if _ENABLE_DEBUG_OBSERVATIONS:
+  avatar_object["components"].append({
+    "component": "LocationObserver",
+    "kwargs": {"objectIsAvatar": True, "alsoReportOrientation": True},
+  })
 
   return avatar_object
 
@@ -517,6 +520,7 @@ def get_config():
   config.individual_observation_names = [
       "RGB",
       "READY_TO_SHOOT",
+      "POSITION",
   ]
   config.global_observation_names = [
       "WORLD.RGB",
@@ -527,6 +531,7 @@ def get_config():
   config.timestep_spec = specs.timestep({
       "RGB": specs.OBSERVATION["RGB"],
       "READY_TO_SHOOT": specs.OBSERVATION["READY_TO_SHOOT"],
+      "POSITION": specs.OBSERVATION["POSITION"],
       # Debug only (do not use the following observations in policies).
       "WORLD.RGB": specs.rgb(144, 192),
   })

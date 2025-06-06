@@ -242,8 +242,11 @@ class Logger:
 
         self.log(to_log, step=step)
         if video_frames is not None and max_length_rollout_0 > 1:
-            if video_frames[0].device.type != "cpu":
-                video_frames = [frame.cpu() for frame in video_frames]
+            try:
+                if video_frames[0].device.type != "cpu":
+                    video_frames = [frame.cpu() for frame in video_frames]
+            except:
+                pass
             video_frames = np.stack(video_frames[: max_length_rollout_0 - 1], axis=0)
             vid = torch.tensor(
                 np.transpose(video_frames, (0, 3, 1, 2)),
